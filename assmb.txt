@@ -1,0 +1,99 @@
+Author : Sadik Erisen
+Purpose : adding all the odd number up to 100.
+             
+//ASMPGM   JOB 1,NOTIFY=&SYSUID                                         
+//ASMPGM   EXEC ASMACL,MBR=ASMPGM                                       
+//C.SYSIN  DD *                                                         
+ASMPGM   TITLE 'CONTEST PROGRAM'                                        
+ASMPGM   CSECT                                                          
+*--------------------------------------------------------------------*  
+*        REGISTER EQUATES                                               
+*--------------------------------------------------------------------*  
+R0       EQU   0                       REGISTER 0                       
+BASEREG  EQU   12                      BASE REGISTER                    
+SAVEREG  EQU   13                      SAVE AREA REGISTER               
+RETREG   EQU   14                      CALLER'S RETURN ADDRESS          
+ENTRYREG EQU   15                      ENTRY ADDRESS                    
+RETCODE  EQU   15                      RETURN CODE                      
+         EJECT                                                          
+*---------------------------------------------------------------------* 
+*        STANDARD ENTRY SETUP, SAVE AREA CHAINING, ESTABLISH          * 
+*        BASE REGISTER AND ADDRESSIBILITY                               
+*---------------------------------------------------------------------* 
+         USING ASMPGM,ENTRYREG         ESTABLISH ADDRESSIBILITY         
+         B     SETUP                   BRANCH AROUND EYECATCHER         
+         DC    CL8'ASMPGM'             PROGRAM NAME                     
+         DC    CL8'&SYSDATE'           PROGRAM ASSEMBLED DATE           
+SETUP    STM   RETREG,BASEREG,12(SAVEREG)  SAVE CALLER'S REGS           
+         BALR  BASEREG,R0              ESTABLISH BASE REGISTER          
+         DROP  ENTRYREG                DROP INITIAL BASE REGISTER       
+         USING *,BASEREG               ESTABLISH ADDRESSIBILTY          
+         LA    ENTRYREG,SAVEAREA       POINT TO THIS PROGRAM SAVE AREA  
+*        ST    SAVEREG,16(,14)         ERROR                            
+         ST    SAVEREG,4(,ENTRYREG)    SAVE ADDRESS OF CALLER           
+         ST    ENTRYREG,8(,SAVEREG)    SAVE ADDRESS OF THIS PROGRAM     
+         LR    SAVEREG,ENTRYREG        POINT TO THIS PROGRAM SAVEAREA   
+         EJECT                                                          
+*--------------------------------------------------------------------*  
+*        PROGRAM BODY                                                *  
+*--------------------------------------------------------------------*  
+         OPEN  (PRTLINE,OUTPUT)                                         
+         MVC   LINE(26),MSGX                                            
+         PUT   PRTLINE,LINE                                             
+         MVC   LINE,BLANK                                               
+LOOPINIT DS    0H                                                       
+         SR    1,1                                                      
+         SR    2,2                                                      
+         SR    3,3                                                      
+         LH    1,ONE                                                    
+         LH    3,ZERO                                                   
+         LH    2,TWO                                                    
+         LH    7,HUNDRED                                                
+LOOP     DS    0H                                                       
+         AR    1,2                                                      
+         AR    3,1                                                      
+         CR    3,7                                                      
+         BNH   LOOP                                                     
+         CVD   3,PACKAREA                                               
+         UNPK  OUT,PACKAREA                                             
+         MVC   LINE(8),OUT                                              
+         MVZ   LINE+7(1),LINE                                           
+         PUT   PRTLINE,LINE                                             
+         CLOSE (PRTLINE)                                                
+*--------------------------------------------------------------------*  
+*        STANDARD EXIT -  RESTORE CALLER'S REGISTERS AND             *  
+*        RETURN TO CALLER                                            *  
+*--------------------------------------------------------------------*  
+EXIT     DS    0H                      HALFWORD BOUNDARY ALIGNMENT      
+          L     SAVEREG,4(,SAVEREG)     RESTORE CALLER'S SAVE AREA ADDR 
+          L     RETREG,12(,SAVEREG)     RESTORE RETURN ADDRESS REGISTER 
+          LM    R0,BASEREG,20(SAVEREG)  RESTORE ALL REGS. EXCEPT REG15  
+          BR    RETREG                  RETURN TO CALLER                
+          EJECT                                                         
+ *--------------------------------------------------------------------*  
+ *        STORAGE AND CONSTANT DEFINITIONS.                           *  
+ *        PRINT OUTPUT DEFINITION.                                    *  
+ *--------------------------------------------------------------------*  
+ LINE     DS    0CL80                                                    
+          DC    C' '                                                     
+ ZERO     DC    H'0'                                                     
+ TWO      DC    H'2'                                                     
+ ONE      DC    H'1'                                                     
+          DC    CL79' '                                                  
+ HUNDRED  DC    H'100'                                                   
+ PRTLINE  DCB   DSORG=PS,DDNAME=PRINT,MACRF=PM,                         X
+                RECFM=FB,LRECL=80                                        
+ OUT      DC    X'4040404040404040'                                      
+ MSGX     DC    CL26'HI! I CAN COUNT VERY FAST.'                         
+ BLANK    DC    CL80' '                                                  
+ PACKAREA DC    D'0'                                                     
+ SAVEAREA DC    18F'-1'                 REGISTER SAVE AREA               
+          END   ASMPGM                                                   
+ //GO      EXEC PGM=ASMPGM                                               
+ //STEPLIB  DD DSN=&SYSUID..LOAD,DISP=SHR                                
+ //PRINT    DD DSN=&SYSUID..P2.OUTPUT(MYOUTP2),DISP=SHR                  
+ //SYSUDUMP  DD  SYSOUT=A                                                
+ **************************** Bottom of Data ****************************
+                                                                         
+                                                                         
+                                                                         
